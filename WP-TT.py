@@ -1,6 +1,9 @@
 import tkinter as tk
 from tkinter import filedialog as fd
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import A4
 from os.path import isfile
+import time
 import csv
 import itertools
 
@@ -23,8 +26,9 @@ class order:
 
 		self.deliveryName	=	custLine[24]
 		self.deliveryAddress=	"{}\n{}\n{} {} {}".format(custLine[25], custLine[26], custLine[28], custLine[29], custLine[27])
+		self.deliveryInstructions = custLine[41]
 		
-		self.isDelivery		=	(len(self.deliveryAddress) > 4)
+		self.isDelivery		=	"DELIVER" in self.deliveryInstructions
 		self.isPickup		=	not self.isDelivery
 		self.pickupOrDeliver=	("Delivery" if self.isDelivery else "Pickup")
 		
@@ -205,8 +209,88 @@ def filterListbox(rootframe, descriptor, filteroptions):
 	return box_filter
 
 def printOrders(orderList):
-	for order in orderList:
-		print(order)
+	w, h = A4
+	tmp = h
+	h = w
+	w = tmp
+	def printPicklist(printDoc):
+		maxOrdersOnPage = 25
+		paginatedOrders = [orderList[i * maxOrdersOnPage:(i + 1) * maxOrdersOnPage] for i in range((len(orderList) + maxOrdersOnPage - 1) // maxOrdersOnPage )]  
+		for orderChunk in paginatedOrders:
+			text = printDoc.beginText(36, h-36)
+			text.setFont("Courier", 9)
+			text.textLine("{} - Picklist for {} orders (page {} of {})".format(
+				time.strftime("%F %R", time.gmtime()),
+				len(orderList),
+				(1+paginatedOrders.index(orderChunk)),
+				len(paginatedOrders)
+			))
+			descriptionLine = "{:10s} | {:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+				"Order No.",
+				"Pickup Date",
+				"Name",
+				"Pickup?",
+				"Phone Number",
+				"Items"
+			)
+			text.textLine(descriptionLine)
+			for order in orderChunk:
+				pickLine = "{:10s} | {:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+					order.orderNumber,
+					order.pickupDate,
+					order.shipName,
+					order.pickupOrDeliver,
+					order.shipPhone,
+					order.productStr
+				)
+				text.textLine(pickLine)
+				if order.isDelivery:
+					text.textLine("    {}".format(order.deliveryInstructions))
+			printDoc.drawText(text)
+			printDoc.showPage()
+
+	def printInvoices(printDoc):
+		#TODO
+		print()
+
+	def printToPdf():
+		pdfFilename = "WP-TT-{}.pdf".format(int(time.time()))
+		printDoc = canvas.Canvas(pdfFilename, pagesize=(w, h))
+		if pickList.get():
+			printPicklist(printDoc)
+		if invoices.get():
+			printInvoices(printDoc)
+		printDoc.save()
+
+	printDialogue = tk.Toplevel()
+	printDialogue.title("Printing orders...")
+	lbl_printDialogue = tk.Label(
+		printDialogue,
+		text="Printing {} orders".format(len(orderList)),
+	)
+	lbl_printDialogue.pack(side=tk.TOP)
+	pickList = tk.BooleanVar()
+	invoices = tk.BooleanVar()
+	frame_pickList = tk.Frame(printDialogue)
+	chk_pickList = tk.Checkbutton(frame_pickList, variable=pickList, onvalue=True, offvalue=False)
+	lbl_pickList = tk.Label(frame_pickList, text="Print Picklist?")
+	chk_pickList.pack(side=tk.LEFT)
+	lbl_pickList.pack(side=tk.RIGHT)
+	frame_pickList.pack(side=tk.TOP, fill=tk.BOTH)
+
+	#TODO: FUTURE TASK
+	"""
+	frame_invoices = tk.Frame(printDialogue)
+	chk_invoices = tk.Checkbutton(frame_invoices, variable=invoices, onvalue=True, offvalue=False)
+	lbl_invoices = tk.Label(frame_invoices, text="Print Invoices?")
+	chk_invoices.pack(side=tk.LEFT)
+	lbl_invoices.pack(side=tk.RIGHT)
+	frame_invoices.pack(side=tk.TOP, fill=tk.BOTH)
+	"""
+	btn_print = tk.Button(printDialogue, text="Print!", command=printToPdf)
+	btn_print.pack(side=tk.BOTTOM)
+
+	printDialogue.mainloop()
 
 def printAll():
 	printOrders(myOrders.orders)
