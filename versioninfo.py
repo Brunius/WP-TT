@@ -1,0 +1,11 @@
+VERSION_MAJOR	=	0
+VERSION_MINOR	=	3
+VERSION_PATCH	=	0
+VERSION_RC		=	None
+
+VERSION_STRING	=	"{}.{}.{}".format(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+if (VERSION_RC is not None):
+	VERSION_STRING += "-rc{}".format(VERSION_RC)
+
+if __name__ == "__main__":
+	print(VERSION_STRING)

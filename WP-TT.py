@@ -5,7 +5,7 @@ from reportlab.lib.pagesizes import A4
 from os.path import isfile
 import time
 import csv
-import itertools
+import versioninfo
 
 class order:
 	def __init__(self, orderRow: list):
@@ -220,7 +220,7 @@ def printOrders(orderList):
 				text = printDoc.beginText(margin, currentWritePosition)
 				text.setFont("Courier", 12)
 				text.textLine("{} - Picklist for {} orders".format(
-					time.strftime("%F %R", time.gmtime()),
+					time.strftime("%F %R", time.localtime()),
 					len(orderList)
 				))
 				descriptionLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
@@ -312,7 +312,7 @@ def printCurrent():
 		
 
 root = tk.Tk()
-root.title("Wonga Park Trees Tool")
+root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
 root.geometry("566x73")
 
 # Solicit file from user
@@ -415,7 +415,7 @@ box_displayOrder_name		= tk.Listbox(
 )
 lbl_displayOrder_name.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_name.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-#box_displayOrder_name.bind("<<ListboxSelect>>", tk_highlight_name)
+box_displayOrder_name.bind("<<ListboxSelect>>", tk_highlight_name)
 
 frame_displayOrder_date = tk.Frame(frame_displayOrders)
 frame_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -427,7 +427,7 @@ box_displayOrder_date		= tk.Listbox(
 )
 lbl_displayOrder_date.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-#box_displayOrder_date.bind("<<ListboxSelect>>", tk_highlight_date)
+box_displayOrder_date.bind("<<ListboxSelect>>", tk_highlight_date)
 
 frame_displayOrder_product = tk.Frame(frame_displayOrders)
 frame_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -439,7 +439,7 @@ box_displayOrder_product	= tk.Listbox(
 )
 lbl_displayOrder_product.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-#box_displayOrder_product.bind("<<ListboxSelect>>", tk_highlight_product)
+box_displayOrder_product.bind("<<ListboxSelect>>", tk_highlight_product)
 
 scr_displayOrders = tk.Scrollbar(frame_displayOrders)
 scr_displayOrders.pack(side=tk.RIGHT, fill=tk.BOTH)
