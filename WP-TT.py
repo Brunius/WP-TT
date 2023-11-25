@@ -248,6 +248,8 @@ def printOrders(orderList):
 			if (currentWritePosition <= marginBottom):
 				printDoc.drawText(text)
 				printDoc.showPage()
+		printDoc.drawText(text)
+		printDoc.showPage()
 
 	def printInvoices(printDoc):
 		#TODO
@@ -392,7 +394,7 @@ box_fulfillment.bind("<<ListboxSelect>>", tk_filterBy)
 
 frame_displayOrder_custEmail = tk.Frame(frame_displayOrders)
 frame_displayOrder_custEmail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_custEmail	= tk.Label(frame_displayOrder_custEmail, text="Order Number")
+lbl_displayOrder_custEmail	= tk.Label(frame_displayOrder_custEmail, text="Email")
 box_displayOrder_custEmail		= tk.Listbox(
 	frame_displayOrder_custEmail,
 	selectmode=tk.EXTENDED,
@@ -413,6 +415,7 @@ box_displayOrder_name		= tk.Listbox(
 )
 lbl_displayOrder_name.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_name.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+#box_displayOrder_name.bind("<<ListboxSelect>>", tk_highlight_name)
 
 frame_displayOrder_date = tk.Frame(frame_displayOrders)
 frame_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -424,6 +427,7 @@ box_displayOrder_date		= tk.Listbox(
 )
 lbl_displayOrder_date.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+#box_displayOrder_date.bind("<<ListboxSelect>>", tk_highlight_date)
 
 frame_displayOrder_product = tk.Frame(frame_displayOrders)
 frame_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -435,6 +439,7 @@ box_displayOrder_product	= tk.Listbox(
 )
 lbl_displayOrder_product.pack(side=tk.TOP, fill=tk.BOTH)
 box_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+#box_displayOrder_product.bind("<<ListboxSelect>>", tk_highlight_product)
 
 scr_displayOrders = tk.Scrollbar(frame_displayOrders)
 scr_displayOrders.pack(side=tk.RIGHT, fill=tk.BOTH)
