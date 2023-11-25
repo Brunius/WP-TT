@@ -8,25 +8,23 @@ import csv
 import itertools
 
 class order:
-	def __init__(self, number:int, orderRows: list):
-		custLine = orderRows.pop(0)
-		self.orderNumber	=	custLine[0]
-		self.orderPlaced	=	custLine[1]
-		self.status			=	custLine[2]
-		self.currency		=	custLine[3]
-		self.subtotal		=	float(custLine[4])
-		self.shipping		=	float(custLine[5])
-		self.total			=	float(custLine[7])
-		self.refunded		=	float(custLine[8])
+	def __init__(self, orderRow: list):
+		self.orderPlaced	=	orderRow[1]
+		self.status			=	orderRow[10]
+		self.currency		=	orderRow[2]
+		self.subtotal		=	float(orderRow[3])
+		self.shipping		=	float(orderRow[5])
+		self.total			=	float(orderRow[6])
+		self.refunded			=	orderRow[7]
+		if self.refunded != "":
+			self.refunded	=	float(self.refunded)
 
-		self.shipName		=	custLine[14] + " " + custLine[15]
-		self.shipEmail		=	custLine[16]
-		self.shipAddress	=	"{}\n{}\n{} {} {}".format(custLine[17], custLine[18], custLine[20], custLine[21], custLine[19])
-		self.shipPhone		=	custLine[23]
+		self.custName		=	orderRow[14]
+		self.custEmail		=	orderRow[15]
+		self.custAddress	=	"{}\n{}\n{} {} {}".format(orderRow[17], orderRow[18], orderRow[20], orderRow[21], orderRow[19])
+		self.custPhone		=	orderRow[16]
 
-		self.deliveryName	=	custLine[24]
-		self.deliveryAddress=	"{}\n{}\n{} {} {}".format(custLine[25], custLine[26], custLine[28], custLine[29], custLine[27])
-		self.deliveryInstructions = custLine[41]
+		self.deliveryInstructions = orderRow[13]
 		
 		self.isDelivery		=	"DELIVER" in self.deliveryInstructions
 		self.isPickup		=	not self.isDelivery
@@ -35,19 +33,20 @@ class order:
 
 		self.productList	= []
 
-		for custLine in orderRows:
-			self.pickupDate	=	custLine[43]
-			product			=	custLine[33]
-			productQty		=	custLine[35]
-			productPrice	=	custLine[36]
-			productTotal	=	custLine[39]
+		pickupDate			=	orderRow[8][:10]
+		#convert US date to AU date
+		self.pickupDate		=	pickupDate[3:6] + pickupDate[0:3] + pickupDate[6:10]
+		product				=	orderRow[24]
+		productQty			=	orderRow[23]
+		productPrice		=	orderRow[29]
+		productTotal		=	orderRow[30]
 
-			self.productList.append((product, productQty, productPrice, productTotal))
+		self.productList.append((product, productQty, productPrice, productTotal))
 
 		self.productStr = ", ".join(["{}x {}".format(x[1], x[0]) for x in self.productList])
 	
 	def __str__(self):
-		nameStr = "{} : {} order for {}".format(self.pickupDate, self.pickupOrDeliver, self.shipName)
+		nameStr = "{} : {} order for {}".format(self.pickupDate, self.pickupOrDeliver, self.custName)
 		return "{} - {}".format(nameStr, self.productStr)
 
 class csvObj:
@@ -59,16 +58,14 @@ class csvObj:
 	def readOrdersFromFile(self, filename : str):
 		with open(filename, newline='') as csvfile:
 			orderList = csv.reader(csvfile, delimiter=',', quotechar='"')
-			newIter = itertools.groupby(orderList, lambda custLine : custLine[0])
 
 			self.orders = []
 
-			for orderNo, orderGroup in newIter:
-				groupList = list(orderGroup)
-				if groupList[0][0] == 'Order #':
+			for orderRow in orderList:
+				if orderRow[0] == 'Order':
 					#if this is the description row, ignore it
 					continue
-				myOrder = order(orderNo, groupList)
+				myOrder = order(orderRow)
 				self.orders.append(myOrder)
 
 def isValidFile(filename : str):
@@ -105,20 +102,20 @@ def tk_initLoad():
 		print("invalid file")
 
 def tk_scroll_all_yview(*args):
-	box_displayOrder_orderNumber.yview(*args)
+	box_displayOrder_custEmail.yview(*args)
 	box_displayOrder_name.yview(*args)
 	box_displayOrder_date.yview(*args)
 	box_displayOrder_product.yview(*args)
 
 def tk_scroll_all_yscroll(*args):
 	scr_displayOrders.set(*args)
-	box_displayOrder_orderNumber.yview_moveto(args[0])
+	box_displayOrder_custEmail.yview_moveto(args[0])
 	box_displayOrder_name.yview_moveto(args[0])
 	box_displayOrder_date.yview_moveto(args[0])
 	box_displayOrder_product.yview_moveto(args[0])
 
 def tk_highlight_oNum(event):
-	highlightBoxes(box_displayOrder_orderNumber)
+	highlightBoxes(box_displayOrder_custEmail)
 
 def tk_highlight_name(event):
 	highlightBoxes(box_displayOrder_name)
@@ -131,12 +128,12 @@ def tk_highlight_product(event):
 
 def highlightBoxes(leaderBox):
 	indicesToHighlight = leaderBox.curselection()
-	box_displayOrder_orderNumber.select_clear(0, tk.END)
+	box_displayOrder_custEmail.select_clear(0, tk.END)
 	box_displayOrder_name.select_clear(0, tk.END)
 	box_displayOrder_date.select_clear(0, tk.END)
 	box_displayOrder_product.select_clear(0, tk.END)
 	for index in indicesToHighlight:
-		box_displayOrder_orderNumber.selection_set(index)
+		box_displayOrder_custEmail.selection_set(index)
 		box_displayOrder_name.selection_set(index)
 		box_displayOrder_date.selection_set(index)
 		box_displayOrder_product.selection_set(index)
@@ -171,7 +168,7 @@ def tk_filterBy(event):
 	fillListBoxes(displayItems)
 
 def emptyListBoxes():
-	box_displayOrder_orderNumber.delete(0, tk.END)
+	box_displayOrder_custEmail.delete(0, tk.END)
 	box_displayOrder_name.delete(0, tk.END)
 	box_displayOrder_date.delete(0, tk.END)
 	box_displayOrder_product.delete(0, tk.END)
@@ -180,8 +177,8 @@ def fillListBoxes(listOfOrders):
 	global currentOrders
 	currentOrders = listOfOrders
 	for myOrder in listOfOrders:
-		box_displayOrder_orderNumber.insert(tk.END, myOrder.orderNumber)
-		box_displayOrder_name.insert(tk.END, myOrder.shipName)
+		box_displayOrder_custEmail.insert(tk.END, myOrder.custEmail)
+		box_displayOrder_name.insert(tk.END, myOrder.custName)
 		box_displayOrder_date.insert(tk.END, myOrder.orderPlaced)
 		box_displayOrder_product.insert(tk.END, myOrder.productStr)
 
@@ -213,41 +210,44 @@ def printOrders(orderList):
 	tmp = h
 	h = w
 	w = tmp
+	margin = 36
+	marginBottom = margin+108
 	def printPicklist(printDoc):
-		maxOrdersOnPage = 25
-		paginatedOrders = [orderList[i * maxOrdersOnPage:(i + 1) * maxOrdersOnPage] for i in range((len(orderList) + maxOrdersOnPage - 1) // maxOrdersOnPage )]  
-		for orderChunk in paginatedOrders:
-			text = printDoc.beginText(36, h-36)
-			text.setFont("Courier", 9)
-			text.textLine("{} - Picklist for {} orders (page {} of {})".format(
-				time.strftime("%F %R", time.gmtime()),
-				len(orderList),
-				(1+paginatedOrders.index(orderChunk)),
-				len(paginatedOrders)
-			))
-			descriptionLine = "{:10s} | {:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
-				"Order No.",
-				"Pickup Date",
-				"Name",
-				"Pickup?",
-				"Phone Number",
-				"Items"
-			)
-			text.textLine(descriptionLine)
-			for order in orderChunk:
-				pickLine = "{:10s} | {:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
-					order.orderNumber,
-					order.pickupDate,
-					order.shipName,
-					order.pickupOrDeliver,
-					order.shipPhone,
-					order.productStr
+		currentWritePosition = 0
+		for order in orderList:
+			if (currentWritePosition <= marginBottom):
+				currentWritePosition = h-margin
+				text = printDoc.beginText(margin, currentWritePosition)
+				text.setFont("Courier", 12)
+				text.textLine("{} - Picklist for {} orders".format(
+					time.strftime("%F %R", time.gmtime()),
+					len(orderList)
+				))
+				descriptionLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+					"Pickup Date",
+					"Name",
+					"Pickup?",
+					"Phone Number",
+					"Items"
 				)
-				text.textLine(pickLine)
-				if order.isDelivery:
-					text.textLine("    {}".format(order.deliveryInstructions))
-			printDoc.drawText(text)
-			printDoc.showPage()
+				text.textLine(descriptionLine)
+				currentWritePosition -= 24
+			pickLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+				order.pickupDate,
+				order.custName,
+				order.pickupOrDeliver,
+				order.custPhone,
+				order.productStr
+			)
+			text.textLine(pickLine)
+			currentWritePosition -= 12
+			if order.isDelivery:
+				for line in order.deliveryInstructions.split("Delivery Instructions: "):
+					text.textLine("    {}".format(line.replace("\n", " ")))
+					currentWritePosition -= 12
+			if (currentWritePosition <= marginBottom):
+				printDoc.drawText(text)
+				printDoc.showPage()
 
 	def printInvoices(printDoc):
 		#TODO
@@ -299,11 +299,11 @@ def printFiltered():
 	printOrders(currentOrders)
 
 def printCurrent():
-	whichOrderNumbers = [box_displayOrder_orderNumber.get(index) for index in box_displayOrder_orderNumber.curselection()]
+	whichcustEmails = [box_displayOrder_custEmail.get(index) for index in box_displayOrder_custEmail.curselection()]
 	whichOrders = []
-	for orderNumber in whichOrderNumbers:
+	for custEmail in whichcustEmails:
 		for orderCandidate in myOrders.orders:
-			if orderCandidate.orderNumber == orderNumber:
+			if orderCandidate.custEmail == custEmail:
 				whichOrders.append(orderCandidate)
 				break
 	printOrders(whichOrders)
@@ -390,17 +390,17 @@ box_fulfillment = filterListbox(frame_displayOrders, "Pickup?", ["All", "Pickup"
 box_date.bind("<<ListboxSelect>>", tk_filterBy)
 box_fulfillment.bind("<<ListboxSelect>>", tk_filterBy)
 
-frame_displayOrder_orderNumber = tk.Frame(frame_displayOrders)
-frame_displayOrder_orderNumber.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_orderNumber	= tk.Label(frame_displayOrder_orderNumber, text="Order Number")
-box_displayOrder_orderNumber		= tk.Listbox(
-	frame_displayOrder_orderNumber,
+frame_displayOrder_custEmail = tk.Frame(frame_displayOrders)
+frame_displayOrder_custEmail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+lbl_displayOrder_custEmail	= tk.Label(frame_displayOrder_custEmail, text="Order Number")
+box_displayOrder_custEmail		= tk.Listbox(
+	frame_displayOrder_custEmail,
 	selectmode=tk.EXTENDED,
 	exportselection=False
 )
-lbl_displayOrder_orderNumber.pack(side=tk.TOP, fill=tk.BOTH)
-box_displayOrder_orderNumber.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-box_displayOrder_orderNumber.bind("<<ListboxSelect>>", tk_highlight_oNum)
+lbl_displayOrder_custEmail.pack(side=tk.TOP, fill=tk.BOTH)
+box_displayOrder_custEmail.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
+box_displayOrder_custEmail.bind("<<ListboxSelect>>", tk_highlight_oNum)
 
 
 frame_displayOrder_name = tk.Frame(frame_displayOrders)
@@ -439,7 +439,7 @@ box_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scr_displayOrders = tk.Scrollbar(frame_displayOrders)
 scr_displayOrders.pack(side=tk.RIGHT, fill=tk.BOTH)
 
-box_displayOrder_orderNumber.config(yscrollcommand=tk_scroll_all_yscroll)
+box_displayOrder_custEmail.config(yscrollcommand=tk_scroll_all_yscroll)
 box_displayOrder_name.config(yscrollcommand=tk_scroll_all_yscroll)
 box_displayOrder_date.config(yscrollcommand=tk_scroll_all_yscroll)
 box_displayOrder_product.config(yscrollcommand=tk_scroll_all_yscroll)
