@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog as fd
+from tkinter import messagebox
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from os.path import isfile
@@ -206,6 +207,9 @@ def filterListbox(rootframe, descriptor, filteroptions):
 	return box_filter
 
 def printOrders(orderList):
+	if (len(orderList) == 0):
+		messagebox.showerror("Printing...", "No orders selected! Cannot print")
+		return
 	w, h = A4
 	tmp = h
 	h = w
