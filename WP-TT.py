@@ -8,66 +8,70 @@ import time
 import csv
 import versioninfo
 
-class order:
-	def __init__(self, orderRow: list):
-		self.orderPlaced	=	orderRow[1]
-		self.status			=	orderRow[10]
-		self.currency		=	orderRow[2]
-		self.subtotal		=	float(orderRow[3])
-		self.shipping		=	float(orderRow[5])
-		self.total			=	float(orderRow[6])
-		self.refunded			=	orderRow[7]
-		if self.refunded != "":
-			self.refunded	=	float(self.refunded)
+class WPTT:
+	class order:
+		def __init__(self, orderRow: list):
+			self.orderPlaced	=	orderRow[1]
+			self.status			=	orderRow[10]
+			self.currency		=	orderRow[2]
+			self.subtotal		=	float(orderRow[3])
+			self.shipping		=	float(orderRow[5])
+			self.total			=	float(orderRow[6])
+			self.refunded			=	orderRow[7]
+			if self.refunded != "":
+				self.refunded	=	float(self.refunded)
 
-		self.custName		=	orderRow[14]
-		self.custEmail		=	orderRow[15]
-		self.custAddress	=	"{}\n{}\n{} {} {}".format(orderRow[17], orderRow[18], orderRow[20], orderRow[21], orderRow[19])
-		self.custPhone		=	orderRow[16]
+			self.custName		=	orderRow[14]
+			self.custEmail		=	orderRow[15]
+			self.custAddress	=	"{}\n{}\n{} {} {}".format(orderRow[17], orderRow[18], orderRow[20], orderRow[21], orderRow[19])
+			self.custPhone		=	orderRow[16]
 
-		self.deliveryInstructions = orderRow[13]
+			self.deliveryInstructions = orderRow[13]
+			
+			self.isDelivery		=	"DELIVER" in self.deliveryInstructions
+			self.isPickup		=	not self.isDelivery
+			self.pickupOrDeliver=	("Delivery" if self.isDelivery else "Pickup")
+			
+
+			self.productList	= []
+
+			pickupDate			=	orderRow[8][:10]
+			#convert US date to AU date
+			self.pickupDate		=	pickupDate[3:6] + pickupDate[0:3] + pickupDate[6:10]
+			product				=	orderRow[24]
+			productQty			=	orderRow[23]
+			productPrice		=	orderRow[29]
+			productTotal		=	orderRow[30]
+
+			self.productList.append((product, productQty, productPrice, productTotal))
+
+			self.productStr = ", ".join(["{}x {}".format(x[1], x[0]) for x in self.productList])
 		
-		self.isDelivery		=	"DELIVER" in self.deliveryInstructions
-		self.isPickup		=	not self.isDelivery
-		self.pickupOrDeliver=	("Delivery" if self.isDelivery else "Pickup")
-		
+		def __str__(self):
+			nameStr = "{} : {} order for {}".format(self.pickupDate, self.pickupOrDeliver, self.custName)
+			return "{} - {}".format(nameStr, self.productStr)
 
-		self.productList	= []
+	class importObj:
+		pass
 
-		pickupDate			=	orderRow[8][:10]
-		#convert US date to AU date
-		self.pickupDate		=	pickupDate[3:6] + pickupDate[0:3] + pickupDate[6:10]
-		product				=	orderRow[24]
-		productQty			=	orderRow[23]
-		productPrice		=	orderRow[29]
-		productTotal		=	orderRow[30]
+	class csvObj(importObj):
+		def __init__(self, filename : str):
+			if filename is not None:
+				self.filename = filename
+				self.readOrders(filename)
 
-		self.productList.append((product, productQty, productPrice, productTotal))
+		def readOrders(self, filename : str):
+			with open(filename, newline='') as csvfile:
+				orderList = csv.reader(csvfile, delimiter=',', quotechar='"')
 
-		self.productStr = ", ".join(["{}x {}".format(x[1], x[0]) for x in self.productList])
-	
-	def __str__(self):
-		nameStr = "{} : {} order for {}".format(self.pickupDate, self.pickupOrDeliver, self.custName)
-		return "{} - {}".format(nameStr, self.productStr)
+				self.orders = []
 
-class csvObj:
-	def __init__(self, filename : str):
-		if filename is not None:
-			self.filename = filename
-			self.readOrdersFromFile(filename)
-
-	def readOrdersFromFile(self, filename : str):
-		with open(filename, newline='') as csvfile:
-			orderList = csv.reader(csvfile, delimiter=',', quotechar='"')
-
-			self.orders = []
-
-			for orderRow in orderList:
-				if orderRow[0] == 'Order':
-					#if this is the description row, ignore it
-					continue
-				myOrder = order(orderRow)
-				self.orders.append(myOrder)
+				for orderRow in orderList:
+					if orderRow[0] == 'Order':
+						#if this is the description row, ignore it
+						continue
+					myOrder = WPTT.order(orderRow)
+					self.orders.append(myOrder)
 
 def isValidFile(filename : str):
 	if (isfile(filename)) and (filename.endswith(".csv")):
@@ -375,7 +379,7 @@ btn_continue.pack(side=tk.BOTTOM)
 root.mainloop()
 
 # Load file, read all entries, display
-myOrders = csvObj(ent_file.get())
+myOrders = WPTT.csvObj(ent_file.get())
 frame_displayOrders = tk.Frame(root)
 frame_displayOrders.pack(fill=tk.BOTH, expand=True)
 lbl_displayOrders = tk.Label(
