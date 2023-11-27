@@ -1,7 +1,4 @@
-*.exe
 __pycache__/*
-*.build/
-*.dist/
-*.onefile-build/
+WP-TT-v*
 
 *.csv
