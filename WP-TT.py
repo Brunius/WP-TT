@@ -82,10 +82,224 @@ class WPTT:
 
 	class window:
 		class main:
-			pass
+			def scroll_all_yscroll(self, *args):
+				self.scr_display.set(*args)
+				for box in self.scrollBoxes:
+					box.yview_moveto(args[0])
+
+			def scroll_all_yview(self, *args):
+				for box in self.scrollBoxes:
+					box.yview(*args)
+
+			def emptyListboxes(self):
+				for box in self.scrollBoxes:
+					box.delete(0, tk.END)
+
+			def fillListboxes(self, items):
+				global currentOrders
+				currentOrders = items
+				for myOrder in items:
+					self.box_display_name.insert(tk.END, myOrder.custName)
+					self.box_display_email.insert(tk.END, myOrder.custEmail)
+					self.box_display_date.insert(tk.END, myOrder.orderPlaced)
+					self.box_display_product.insert(tk.END, myOrder.productStr)
+
+			def filterBy(self, *args):
+				dates	= [self.box_date.get(index) for index in self.box_date.curselection()]
+				fulfil	= [self.box_fulfillment.get(index) for index in self.box_fulfillment.curselection()]
+
+				displayItems = []
+				for order in myOrders.orders:
+					allowedDate = False
+					allowedFulfil = False
+					if (len(dates) > 0):
+						for date in dates:
+							if order.pickupDate == date or "All" == date:
+								allowedDate = True
+								break
+					else:
+						allowedDate = True
+					if (len(fulfil) > 0):
+						for fulfillment in fulfil:
+							if order.pickupOrDeliver == fulfillment or "All" == fulfillment:
+								allowedFulfil = True
+								break
+					else:
+						allowedFulfil = True
+					if (allowedDate and allowedFulfil):
+						displayItems.append(order)
+				self.emptyListboxes()
+				self.fillListboxes(displayItems)
+
+			def enterFilterOptions(self, options, listbox, addAll = True):
+				options.sort()
+				if addAll:
+					options = ["All"] + options
+				for opt in options:
+					listbox.insert(tk.END, opt)
+
+			def updateFilters(self):
+				dateFilterOptions	= list(set(x.pickupDate for x in myOrders.orders))
+				fulfillmentOptions	= ["Pickup", "Delivery"]
+				self.enterFilterOptions(dateFilterOptions, self.box_date)
+				self.enterFilterOptions(fulfillmentOptions, self.box_fulfillment)
+
+			def menu_loadFile(self):
+				WPTT.window.loadFile(self)
+
+			def setup_menubar(self, rootWindow):
+				menubar = tk.Menu(rootWindow)
+
+				filemenu = tk.Menu(menubar, tearoff=0)
+				filemenu.add_command(label="Load from file", command=self.menu_loadFile)
+				filemenu.add_command(label="Print all to PDF") #, command=donothing)
+				filemenu.add_separator()
+				filemenu.add_command(label="Exit", command=rootWindow.quit)
+
+				menubar.add_cascade(label="File", menu=filemenu)
+				return menubar
+			
+			def setup_filterListbox(self, rootFrame, descriptor):
+				newFrame = tk.Frame(rootFrame)
+				newFrame.pack(
+					side=tk.LEFT,
+					fill=tk.BOTH
+				)
+				label = tk.Label(
+					newFrame,
+					text=descriptor
+				)
+				label.pack()
+				box = tk.Listbox(
+					newFrame,
+					selectmode=tk.EXTENDED,
+					exportselection=False
+				)
+				box.pack(
+					side=tk.LEFT,
+					fill=tk.BOTH,
+					expand=True
+				)
+				box.bind("<<ListboxSelect>>", self.filterBy)
+				return box
+
+			def setup_displayListbox(self, rootFrame, descriptor, callbackFunc):
+				frame = tk.Frame(rootFrame)
+				frame.pack(
+					side=tk.LEFT,
+					fill=tk.BOTH,
+					expand=True
+				)
+				label = tk.Label(frame, text=descriptor)
+				label.pack(
+					side=tk.TOP,
+					fill=tk.BOTH
+				)
+				box = tk.Listbox(
+					frame,
+					selectmode=tk.EXTENDED,
+					exportselection=False
+				)
+				box.pack(
+					side=tk.BOTTOM,
+					fill=tk.BOTH,
+					expand=True
+				)
+
+				box.bind("<<ListboxSelect>>", callbackFunc)
+				box.config(yscrollcommand=self.scroll_all_yscroll)
+				self.scrollBoxes += [box]
+				return box
+
+			def lb_hl_boxes(self, leaderBox):
+				indicesToHighlight = leaderBox.curselection()
+				for box in self.scrollBoxes:
+					box.select_clear(0, tk.END)
+					for index in indicesToHighlight:
+						box.selection_set(index)
+
+			def lb_hl_email(self, event):
+				self.lb_hl_boxes(self.box_display_email)
+
+			def lb_hl_name(self, event):
+				self.lb_hl_boxes(self.box_display_name)
+
+			def lb_hl_date(self, event):
+				self.lb_hl_boxes(self.box_display_date)
+
+			def lb_hl_product(self, event):
+				self.lb_hl_boxes(self.box_display_product)
+
+			def setup_listboxes(self, rootFrame):
+				self.box_date				= self.setup_filterListbox(rootFrame, "Date")
+				self.box_fulfillment		= self.setup_filterListbox(rootFrame, "Pickup?")
+
+				self.scrollBoxes = []
+				self.box_display_email		= self.setup_displayListbox(rootFrame, "Email", self.lb_hl_email)
+				self.box_display_name		= self.setup_displayListbox(rootFrame, "Name", self.lb_hl_name)
+				self.box_display_date		= self.setup_displayListbox(rootFrame, "Order placed on", self.lb_hl_date)
+				self.box_display_product	= self.setup_displayListbox(rootFrame, "Product/s", self.lb_hl_product)
+
+				self.scr_display			= tk.Scrollbar(rootFrame)
+				self.scr_display.pack(
+					side=tk.RIGHT,
+					fill=tk.BOTH
+				)
+
+			def setup_singleButton(self, rootFrame, descriptor, callbackFunc):
+				button = tk.Button(
+					rootFrame,
+					text=descriptor,
+					command=callbackFunc
+				)
+				button.pack(
+					side=tk.LEFT,
+					padx=5,
+					pady=5
+				)
+
+			def setup_printButtons(self, rootFrame):
+				btn_printall			= self.setup_singleButton(rootFrame, "Print all", printAll)
+				btn_printCurrentFilters	= self.setup_singleButton(rootFrame, "Print current filters", printFiltered)
+				btn_printSelection		= self.setup_singleButton(rootFrame, "Print selection", printCurrent)
+
+			def __init__(self, rootWindow):
+				menubar = self.setup_menubar(rootWindow)
+				rootWindow.config(menu=menubar)
+
+				label_top = tk.Label(
+					rootWindow,
+					text="List of orders:",
+					justify="left"
+				)
+				label_top.pack(
+					side=tk.TOP
+				)
+
+				self.frame_display = tk.Frame(rootWindow)
+				self.frame_display.pack(
+					fill=tk.BOTH,
+					expand=True
+				)
+
+				self.frame_buttons = tk.Frame(rootWindow)
+				self.frame_buttons.pack(
+					side=tk.BOTTOM,
+					fill=tk.X
+				)
+
+				self.setup_listboxes(self.frame_display)
+				self.setup_printButtons(self.frame_buttons)
+
+			def update(self, orders):
+				global myOrders
+				myOrders = orders
+				mainWindow.updateFilters()
+				mainWindow.filterBy(None)
 
 		class loadFile:
-			def __init__(self):
+			def __init__(self, mainWindow):
+				self.mainWindow = mainWindow
 				self.frame = tk.Toplevel()
 
 				lbl_instructions = tk.Label(
@@ -160,125 +374,10 @@ class WPTT:
 				if isValidFile(self.ent_file.get()):
 					myOrders = WPTT.csvObj(self.ent_file.get())
 					self.frame.destroy()
-					updateMainWindow(myOrders)
+					self.mainWindow.update(myOrders)
 				else:
 					messagebox.showerror("Error!", "Invalid file!")
-
-def updateMainWindow(orders : WPTT.importObj):
-	global myOrders
-	myOrders = orders
-	updateFilters()
-	tk_filterBy(None)
-
-# ---------------------------------------------------------------------------- #
-#                                                                              #
-#                                   TKINTER                                    #
-#                                                                              #
-# ---------------------------------------------------------------------------- #
-
-def tk_scroll_all_yview(*args):
-	box_display_custEmail.yview(*args)
-	box_display_name.yview(*args)
-	box_display_date.yview(*args)
-	box_display_product.yview(*args)
-
-def tk_scroll_all_yscroll(*args):
-	scr_displayOrders.set(*args)
-	box_display_custEmail.yview_moveto(args[0])
-	box_display_name.yview_moveto(args[0])
-	box_display_date.yview_moveto(args[0])
-	box_display_product.yview_moveto(args[0])
-
-def tk_highlight_oNum(event):
-	highlightBoxes(box_display_custEmail)
-
-def tk_highlight_name(event):
-	highlightBoxes(box_display_name)
-
-def tk_highlight_date(event):
-	highlightBoxes(box_display_date)
-
-def tk_highlight_product(event):
-	highlightBoxes(box_display_product)
-
-def highlightBoxes(leaderBox):
-	indicesToHighlight = leaderBox.curselection()
-	box_display_custEmail.select_clear(0, tk.END)
-	box_display_name.select_clear(0, tk.END)
-	box_display_date.select_clear(0, tk.END)
-	box_display_product.select_clear(0, tk.END)
-	for index in indicesToHighlight:
-		box_display_custEmail.selection_set(index)
-		box_display_name.selection_set(index)
-		box_display_date.selection_set(index)
-		box_display_product.selection_set(index)
-
-def tk_filterBy(event):
-	# Get filtered items from listbox 1
-	allowedDates = [box_date.get(index) for index in box_date.curselection()]
-	# Get filtered items from listbox 2
-	allowedFulfillments = [box_fulfillment.get(index) for index in box_fulfillment.curselection()]
-	# Set displaylist to be those items
-	displayItems = []
-	for order in myOrders.orders:
-		allowedDate = False
-		allowedFulfil = False
-		if (len(allowedDates) > 0):
-			for date in allowedDates:
-				if order.pickupDate == date or "All" == date:
-					allowedDate = True
-					break
-		else:
-			allowedDate = True
-		if (len(allowedFulfillments) > 0):
-			for fulfillment in allowedFulfillments:
-				if order.pickupOrDeliver == fulfillment or "All" == fulfillment:
-					allowedFulfil = True
-					break
-		else:
-			allowedFulfil = True
-		if (allowedDate and allowedFulfil):
-			displayItems.append(order)
-	emptyListBoxes()
-	fillListBoxes(displayItems)
-
-def emptyListBoxes():
-	box_display_custEmail.delete(0, tk.END)
-	box_display_name.delete(0, tk.END)
-	box_display_date.delete(0, tk.END)
-	box_display_product.delete(0, tk.END)
-
-def fillListBoxes(listOfOrders):
-	global currentOrders
-	currentOrders = listOfOrders
-	for myOrder in listOfOrders:
-		box_display_custEmail.insert(tk.END, myOrder.custEmail)
-		box_display_name.insert(tk.END, myOrder.custName)
-		box_display_date.insert(tk.END, myOrder.orderPlaced)
-		box_display_product.insert(tk.END, myOrder.productStr)
-
-def setupFilterListbox(rootframe, descriptor):
-	thisFrame = tk.Frame(
-		rootframe
-	)
-	thisFrame.pack(
-		side=tk.LEFT,
-		fill=tk.BOTH
-	)
-	lbl_column = tk.Label(
-		thisFrame,
-		text=descriptor
-	)
-	lbl_column.pack()
-	box_filter = tk.Listbox(
-		thisFrame,
-		selectmode=tk.EXTENDED,
-		exportselection=False
-	)
-	box_filter.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-	box_filter.bind("<<ListboxSelect>>", tk_filterBy)
-	return box_filter
-
+					
 def printOrders(orderList):
 	if (len(orderList) == 0):
 		messagebox.showerror("Printing...", "No orders selected! Cannot print")
@@ -378,6 +477,8 @@ def printFiltered():
 	printOrders(currentOrders)
 
 def printCurrent():
+	return
+	#TODO: Fix this bad boy up
 	whichcustEmails = [box_display_custEmail.get(index) for index in box_display_custEmail.curselection()]
 	whichOrders = []
 	for custEmail in whichcustEmails:
@@ -390,116 +491,8 @@ def printCurrent():
 
 root = tk.Tk()
 root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
-root.geometry("566x73")
-
-menubar = tk.Menu(root)
-filemenu = tk.Menu(menubar, tearoff=0)
-filemenu.add_command(label="Load from file", command=WPTT.window.loadFile)
-filemenu.add_command(label="Print all to PDF") #, command=donothing)
-filemenu.add_separator()
-filemenu.add_command(label="Exit", command=root.quit)
-menubar.add_cascade(label="File", menu=filemenu)
-
-root.config(menu=menubar)
-
-frame_displayOrders = tk.Frame(root)
-frame_displayOrders.pack(fill=tk.BOTH, expand=True)
-lbl_displayOrders = tk.Label(
-	frame_displayOrders,
-	text="List of orders:",
-	justify="left"
-)
-lbl_displayOrders.pack(side=tk.TOP)
-
-frame_buttons = tk.Frame(frame_displayOrders, height=4)
-frame_buttons.pack(side=tk.BOTTOM, fill=tk.X)
-
-def enterFilterOptions(options, listbox, addAll = True):
-	options.sort()
-	if addAll:
-		options = ["All"] + options
-	for date in options:
-		listbox.insert(tk.END, date)
-
-def updateFilters():
-	dateFilterOptions = list(set(x.pickupDate for x in myOrders.orders))
-	enterFilterOptions(dateFilterOptions, box_date)
-	fulfillmentOptions = ["Pickup", "Delivery"]
-	enterFilterOptions(fulfillmentOptions, box_fulfillment)
-
-def setupDisplayListbox(rootframe, descriptor, callbackFunc):
-	frame = tk.Frame(rootframe)
-	frame.pack(
-		side=tk.LEFT,
-		fill=tk.BOTH,
-		expand=True
-	)
-	label = tk.Label(frame, text=descriptor)
-	label.pack(
-		side=tk.TOP,
-		fill=tk.BOTH
-	)
-	box = tk.Listbox(
-		frame,
-		selectmode=tk.EXTENDED,
-		exportselection=False
-	)
-	box.pack(
-		side=tk.BOTTOM,
-		fill=tk.BOTH,
-		expand=True
-	)
-	box.bind("<<ListboxSelect>>", callbackFunc)
-	return box
-
-box_date = setupFilterListbox(frame_displayOrders, "Date")
-box_fulfillment = setupFilterListbox(frame_displayOrders, "Pickup?")
-
-box_display_custEmail	= setupDisplayListbox(frame_displayOrders, "Email", tk_highlight_oNum)
-box_display_name		= setupDisplayListbox(frame_displayOrders, "Name", tk_highlight_name)
-box_display_date		= setupDisplayListbox(frame_displayOrders, "Order placed on", tk_highlight_date)
-box_display_product		= setupDisplayListbox(frame_displayOrders, "Product/s", tk_highlight_product)
-
-scr_displayOrders = tk.Scrollbar(frame_displayOrders)
-scr_displayOrders.pack(side=tk.RIGHT, fill=tk.BOTH)
-
-box_display_custEmail.config(yscrollcommand=tk_scroll_all_yscroll)
-box_display_name.config(yscrollcommand=tk_scroll_all_yscroll)
-box_display_date.config(yscrollcommand=tk_scroll_all_yscroll)
-box_display_product.config(yscrollcommand=tk_scroll_all_yscroll)
-scr_displayOrders.config(command=tk_scroll_all_yview)
-
-btn_printall			= tk.Button(
-	frame_buttons,
-	text="Print all",
-	command=printAll
-)
-btn_printCurrentFilters	= tk.Button(
-	frame_buttons,
-	text="Print current filters",
-	command=printFiltered
-)
-btn_printCurrentSel		= tk.Button(
-	frame_buttons,
-	text="Print selected orders",
-	command=printCurrent
-)
-
-btn_printall.pack(
-	side=tk.LEFT,
-	padx=5,
-	pady=5
-)
-btn_printCurrentFilters.pack(
-	side=tk.LEFT,
-	padx=5,
-	pady=5
-)
-btn_printCurrentSel.pack(
-	side=tk.LEFT,
-	padx=5,
-	pady=5
-)
-
 root.geometry("800x500")
+
+mainWindow = WPTT.window.main(root)
+
 root.mainloop()
