@@ -8,6 +8,13 @@ import time
 import csv
 import versioninfo
 
+
+def isValidFile(filename : str):
+	if (isfile(filename)) and (filename.endswith(".csv")):
+		return True
+	else:
+		return False
+	
 class WPTT:
 	class order:
 		def __init__(self, orderRow: list):
@@ -73,11 +80,95 @@ class WPTT:
 					myOrder = WPTT.order(orderRow)
 					self.orders.append(myOrder)
 
-def isValidFile(filename : str):
-	if (isfile(filename)) and (filename.endswith(".csv")):
-		return True
-	else:
-		return False
+	class window:
+		class main:
+			pass
+
+		class loadFile:
+			def __init__(self):
+				self.frame = tk.Toplevel()
+
+				lbl_instructions = tk.Label(
+					self.frame,
+					text="Enter the file to load. This can be downloaded from Square",
+					width=80
+				)
+				lbl_instructions.pack(side=tk.TOP)
+
+				frm_mid = tk.Frame(
+					self.frame,
+					height=1
+				)
+				frm_mid.pack()
+
+				lbl_file	= tk.Label(
+					frm_mid,
+					text="File:",
+					width=10
+					)
+				self.ent_file	= tk.Entry(
+					frm_mid,
+					width=60
+				)
+				btn_file	= tk.Button(
+					frm_mid,
+					text="Browse",
+					command=self.selectFile,
+					width=10
+				)
+
+				lbl_file.pack(
+					fill=tk.Y,
+					side=tk.LEFT
+				)
+				self.ent_file.pack(
+					fill=tk.Y,
+					side=tk.LEFT
+				)
+				btn_file.pack(
+					fill=tk.Y,
+					side=tk.LEFT
+				)
+
+				btn_continue	= tk.Button(
+					self.frame,
+					text="Load and continue",
+					command=self.load
+				)
+				btn_continue.pack(side=tk.BOTTOM)
+				self.frame.mainloop()
+
+			def mainloop(self):
+				self.frame.mainloop()
+
+			def selectFile(self):
+				filetypes = (
+					('csv files', '*.csv'),
+					('All files', '*.*')
+				)
+
+				filename = fd.askopenfilename(
+					title='Open a file',
+					filetypes=filetypes)
+				self.ent_file.insert(0, filename)
+				self.frame.lift()
+
+			def load(self):
+				# Check if file is valid
+				# if not, pop up error
+				# if valid, move to next screen
+				if isValidFile(self.ent_file.get()):
+					myOrders = WPTT.csvObj(self.ent_file.get())
+					self.frame.destroy()
+					updateMainWindow(myOrders)
+				else:
+					messagebox.showerror("Error!", "Invalid file!")
+
+def updateMainWindow(orders : WPTT.importObj):
+	global myOrders
+	myOrders = orders
+	updateFilters()
+	tk_filterBy(None)
 
 # ---------------------------------------------------------------------------- #
 #                                                                              #
@@ -85,63 +176,42 @@ def isValidFile(filename : str):
 #                                                                              #
 # ---------------------------------------------------------------------------- #
 
-def tk_selectFile():
-	filetypes = (
-		('csv files', '*.csv'),
-		('All files', '*.*')
-	)
-
-	filename = fd.askopenfilename(
-		title='Open a file',
-		filetypes=filetypes)
-	ent_file.insert(0, filename)
-
-def tk_initLoad():
-	# Check if file is valid
-	# if not, pop up error
-	# if valid, move to next screen
-	if isValidFile(ent_file.get()):
-		frame_selectFile.quit()
-		frame_selectFile.pack_forget()
-	else:
-		print("invalid file")
-
 def tk_scroll_all_yview(*args):
-	box_displayOrder_custEmail.yview(*args)
-	box_displayOrder_name.yview(*args)
-	box_displayOrder_date.yview(*args)
-	box_displayOrder_product.yview(*args)
+	box_display_custEmail.yview(*args)
+	box_display_name.yview(*args)
+	box_display_date.yview(*args)
+	box_display_product.yview(*args)
 
 def tk_scroll_all_yscroll(*args):
 	scr_displayOrders.set(*args)
-	box_displayOrder_custEmail.yview_moveto(args[0])
-	box_displayOrder_name.yview_moveto(args[0])
-	box_displayOrder_date.yview_moveto(args[0])
-	box_displayOrder_product.yview_moveto(args[0])
+	box_display_custEmail.yview_moveto(args[0])
+	box_display_name.yview_moveto(args[0])
+	box_display_date.yview_moveto(args[0])
+	box_display_product.yview_moveto(args[0])
 
 def tk_highlight_oNum(event):
-	highlightBoxes(box_displayOrder_custEmail)
+	highlightBoxes(box_display_custEmail)
 
 def tk_highlight_name(event):
-	highlightBoxes(box_displayOrder_name)
+	highlightBoxes(box_display_name)
 
 def tk_highlight_date(event):
-	highlightBoxes(box_displayOrder_date)
+	highlightBoxes(box_display_date)
 
 def tk_highlight_product(event):
-	highlightBoxes(box_displayOrder_product)
+	highlightBoxes(box_display_product)
 
 def highlightBoxes(leaderBox):
 	indicesToHighlight = leaderBox.curselection()
-	box_displayOrder_custEmail.select_clear(0, tk.END)
-	box_displayOrder_name.select_clear(0, tk.END)
-	box_displayOrder_date.select_clear(0, tk.END)
-	box_displayOrder_product.select_clear(0, tk.END)
+	box_display_custEmail.select_clear(0, tk.END)
+	box_display_name.select_clear(0, tk.END)
+	box_display_date.select_clear(0, tk.END)
+	box_display_product.select_clear(0, tk.END)
 	for index in indicesToHighlight:
-		box_displayOrder_custEmail.selection_set(index)
-		box_displayOrder_name.selection_set(index)
-		box_displayOrder_date.selection_set(index)
-		box_displayOrder_product.selection_set(index)
+		box_display_custEmail.selection_set(index)
+		box_display_name.selection_set(index)
+		box_display_date.selection_set(index)
+		box_display_product.selection_set(index)
 
 def tk_filterBy(event):
 	# Get filtered items from listbox 1
@@ -173,21 +243,21 @@ def tk_filterBy(event):
 	fillListBoxes(displayItems)
 
 def emptyListBoxes():
-	box_displayOrder_custEmail.delete(0, tk.END)
-	box_displayOrder_name.delete(0, tk.END)
-	box_displayOrder_date.delete(0, tk.END)
-	box_displayOrder_product.delete(0, tk.END)
+	box_display_custEmail.delete(0, tk.END)
+	box_display_name.delete(0, tk.END)
+	box_display_date.delete(0, tk.END)
+	box_display_product.delete(0, tk.END)
 
 def fillListBoxes(listOfOrders):
 	global currentOrders
 	currentOrders = listOfOrders
 	for myOrder in listOfOrders:
-		box_displayOrder_custEmail.insert(tk.END, myOrder.custEmail)
-		box_displayOrder_name.insert(tk.END, myOrder.custName)
-		box_displayOrder_date.insert(tk.END, myOrder.orderPlaced)
-		box_displayOrder_product.insert(tk.END, myOrder.productStr)
+		box_display_custEmail.insert(tk.END, myOrder.custEmail)
+		box_display_name.insert(tk.END, myOrder.custName)
+		box_display_date.insert(tk.END, myOrder.orderPlaced)
+		box_display_product.insert(tk.END, myOrder.productStr)
 
-def filterListbox(rootframe, descriptor, filteroptions):
+def setupFilterListbox(rootframe, descriptor):
 	thisFrame = tk.Frame(
 		rootframe
 	)
@@ -206,8 +276,7 @@ def filterListbox(rootframe, descriptor, filteroptions):
 		exportselection=False
 	)
 	box_filter.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-	for date in filteroptions:
-		box_filter.insert(tk.END, date)
+	box_filter.bind("<<ListboxSelect>>", tk_filterBy)
 	return box_filter
 
 def printOrders(orderList):
@@ -309,7 +378,7 @@ def printFiltered():
 	printOrders(currentOrders)
 
 def printCurrent():
-	whichcustEmails = [box_displayOrder_custEmail.get(index) for index in box_displayOrder_custEmail.curselection()]
+	whichcustEmails = [box_display_custEmail.get(index) for index in box_display_custEmail.curselection()]
 	whichOrders = []
 	for custEmail in whichcustEmails:
 		for orderCandidate in myOrders.orders:
@@ -323,63 +392,16 @@ root = tk.Tk()
 root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
 root.geometry("566x73")
 
-# Solicit file from user
-frame_selectFile = tk.Frame(root)
-frame_selectFile.pack()
+menubar = tk.Menu(root)
+filemenu = tk.Menu(menubar, tearoff=0)
+filemenu.add_command(label="Load from file", command=WPTT.window.loadFile)
+filemenu.add_command(label="Print all to PDF") #, command=donothing)
+filemenu.add_separator()
+filemenu.add_command(label="Exit", command=root.quit)
+menubar.add_cascade(label="File", menu=filemenu)
 
-lbl_instructions = tk.Label(
-	frame_selectFile,
-	text="Enter the file to load. This can be downloaded from Square",
-	width=80
-)
-lbl_instructions.pack(side=tk.TOP)
+root.config(menu=menubar)
 
-frm_mid = tk.Frame(
-	frame_selectFile,
-	height=1
-)
-frm_mid.pack()
-
-lbl_file	= tk.Label(
-	frm_mid,
-	text="File:",
-	width=10
-	)
-ent_file	= tk.Entry(
-	frm_mid,
-	width=60
-)
-btn_file	= tk.Button(
-	frm_mid,
-	text="Browse",
-	command=tk_selectFile,
-	width=10
-)
-
-lbl_file.pack(
-	fill=tk.Y,
-	side=tk.LEFT
-)
-ent_file.pack(
-	fill=tk.Y,
-	side=tk.LEFT
-)
-btn_file.pack(
-	fill=tk.Y,
-	side=tk.LEFT
-)
-
-btn_continue	= tk.Button(
-	frame_selectFile,
-	text="Load and continue",
-	command=tk_initLoad
-)
-btn_continue.pack(side=tk.BOTTOM)
-
-root.mainloop()
-
-# Load file, read all entries, display
-myOrders = WPTT.csvObj(ent_file.get())
 frame_displayOrders = tk.Frame(root)
 frame_displayOrders.pack(fill=tk.BOTH, expand=True)
 lbl_displayOrders = tk.Label(
@@ -392,70 +414,59 @@ lbl_displayOrders.pack(side=tk.TOP)
 frame_buttons = tk.Frame(frame_displayOrders, height=4)
 frame_buttons.pack(side=tk.BOTTOM, fill=tk.X)
 
-dateFilterOptions = list(set(x.pickupDate for x in myOrders.orders))
-dateFilterOptions.sort()
-dateFilterOptions = ["All"] + dateFilterOptions
-box_date = filterListbox(frame_displayOrders, "Date", dateFilterOptions)
-box_fulfillment = filterListbox(frame_displayOrders, "Pickup?", ["All", "Pickup", "Delivery"])
-box_date.bind("<<ListboxSelect>>", tk_filterBy)
-box_fulfillment.bind("<<ListboxSelect>>", tk_filterBy)
+def enterFilterOptions(options, listbox, addAll = True):
+	options.sort()
+	if addAll:
+		options = ["All"] + options
+	for date in options:
+		listbox.insert(tk.END, date)
 
-frame_displayOrder_custEmail = tk.Frame(frame_displayOrders)
-frame_displayOrder_custEmail.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_custEmail	= tk.Label(frame_displayOrder_custEmail, text="Email")
-box_displayOrder_custEmail		= tk.Listbox(
-	frame_displayOrder_custEmail,
-	selectmode=tk.EXTENDED,
-	exportselection=False
-)
-lbl_displayOrder_custEmail.pack(side=tk.TOP, fill=tk.BOTH)
-box_displayOrder_custEmail.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-box_displayOrder_custEmail.bind("<<ListboxSelect>>", tk_highlight_oNum)
+def updateFilters():
+	dateFilterOptions = list(set(x.pickupDate for x in myOrders.orders))
+	enterFilterOptions(dateFilterOptions, box_date)
+	fulfillmentOptions = ["Pickup", "Delivery"]
+	enterFilterOptions(fulfillmentOptions, box_fulfillment)
 
+def setupDisplayListbox(rootframe, descriptor, callbackFunc):
+	frame = tk.Frame(rootframe)
+	frame.pack(
+		side=tk.LEFT,
+		fill=tk.BOTH,
+		expand=True
+	)
+	label = tk.Label(frame, text=descriptor)
+	label.pack(
+		side=tk.TOP,
+		fill=tk.BOTH
+	)
+	box = tk.Listbox(
+		frame,
+		selectmode=tk.EXTENDED,
+		exportselection=False
+	)
+	box.pack(
+		side=tk.BOTTOM,
+		fill=tk.BOTH,
+		expand=True
+	)
+	box.bind("<<ListboxSelect>>", callbackFunc)
+	return box
 
-frame_displayOrder_name = tk.Frame(frame_displayOrders)
-frame_displayOrder_name.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_name		= tk.Label(frame_displayOrder_name, text="Name")
-box_displayOrder_name		= tk.Listbox(
-	frame_displayOrder_name,
-	selectmode=tk.EXTENDED,
-	exportselection=False
-)
-lbl_displayOrder_name.pack(side=tk.TOP, fill=tk.BOTH)
-box_displayOrder_name.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-box_displayOrder_name.bind("<<ListboxSelect>>", tk_highlight_name)
+box_date = setupFilterListbox(frame_displayOrders, "Date")
+box_fulfillment = setupFilterListbox(frame_displayOrders, "Pickup?")
 
-frame_displayOrder_date = tk.Frame(frame_displayOrders)
-frame_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_date		= tk.Label(frame_displayOrder_date, text="Order placed on")
-box_displayOrder_date		= tk.Listbox(
-	frame_displayOrder_date,
-	selectmode=tk.EXTENDED,
-	exportselection=False
-)
-lbl_displayOrder_date.pack(side=tk.TOP, fill=tk.BOTH)
-box_displayOrder_date.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-box_displayOrder_date.bind("<<ListboxSelect>>", tk_highlight_date)
-
-frame_displayOrder_product = tk.Frame(frame_displayOrders)
-frame_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-lbl_displayOrder_product		= tk.Label(frame_displayOrder_product, text="Product/s")
-box_displayOrder_product	= tk.Listbox(
-	frame_displayOrder_product,
-	selectmode=tk.EXTENDED,
-	exportselection=False
-)
-lbl_displayOrder_product.pack(side=tk.TOP, fill=tk.BOTH)
-box_displayOrder_product.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-box_displayOrder_product.bind("<<ListboxSelect>>", tk_highlight_product)
+box_display_custEmail	= setupDisplayListbox(frame_displayOrders, "Email", tk_highlight_oNum)
+box_display_name		= setupDisplayListbox(frame_displayOrders, "Name", tk_highlight_name)
+box_display_date		= setupDisplayListbox(frame_displayOrders, "Order placed on", tk_highlight_date)
+box_display_product		= setupDisplayListbox(frame_displayOrders, "Product/s", tk_highlight_product)
 
 scr_displayOrders = tk.Scrollbar(frame_displayOrders)
 scr_displayOrders.pack(side=tk.RIGHT, fill=tk.BOTH)
 
-box_displayOrder_custEmail.config(yscrollcommand=tk_scroll_all_yscroll)
-box_displayOrder_name.config(yscrollcommand=tk_scroll_all_yscroll)
-box_displayOrder_date.config(yscrollcommand=tk_scroll_all_yscroll)
-box_displayOrder_product.config(yscrollcommand=tk_scroll_all_yscroll)
+box_display_custEmail.config(yscrollcommand=tk_scroll_all_yscroll)
+box_display_name.config(yscrollcommand=tk_scroll_all_yscroll)
+box_display_date.config(yscrollcommand=tk_scroll_all_yscroll)
+box_display_product.config(yscrollcommand=tk_scroll_all_yscroll)
 scr_displayOrders.config(command=tk_scroll_all_yview)
 
 btn_printall			= tk.Button(
@@ -489,8 +500,6 @@ btn_printCurrentSel.pack(
 	padx=5,
 	pady=5
 )
-
-fillListBoxes(myOrders.orders)
 
 root.geometry("800x500")
 root.mainloop()
