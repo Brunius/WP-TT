@@ -132,6 +132,7 @@ class WPTT:
 				self.fillListboxes(displayItems)
 
 			def enterFilterOptions(self, options, listbox, addAll = True):
+				listbox.delete(0, tk.END)
 				options.sort()
 				if addAll:
 					options = ["All"] + options
@@ -145,6 +146,9 @@ class WPTT:
 				self.enterFilterOptions(fulfillmentOptions, self.box_fulfillment)
 
 			def menu_loadFile(self):
+				WPTT.window.loadFile(self)
+
+			def click_loadFile(self, *args):
 				WPTT.window.loadFile(self)
 
 			def setup_menubar(self, rootWindow):
@@ -246,6 +250,23 @@ class WPTT:
 					fill=tk.BOTH
 				)
 
+			def setup_warning(self, rootFrame):
+				self.warning = tk.Label(
+					rootFrame,
+					text="No file loaded! Click here to load one",
+					highlightbackground="red",
+					highlightthickness=2,
+					padx=5,
+					pady=5
+				)
+				self.warning.place(
+					relwidth=0.4,
+					relx=0.3,
+					relheight=0.2,
+					rely=0.4
+				)
+				self.warning.bind("<Button-1>", self.click_loadFile)
+
 			def setup_singleButton(self, rootFrame, descriptor, callbackFunc):
 				button = tk.Button(
 					rootFrame,
@@ -289,6 +310,7 @@ class WPTT:
 				)
 
 				self.setup_listboxes(self.frame_display)
+				self.setup_warning(self.frame_display)
 				self.setup_printButtons(self.frame_buttons)
 
 			def update(self, orders):
@@ -296,6 +318,7 @@ class WPTT:
 				myOrders = orders
 				mainWindow.updateFilters()
 				mainWindow.filterBy(None)
+				self.warning.destroy()
 
 		class loadFile:
 			def __init__(self, mainWindow):
@@ -377,7 +400,7 @@ class WPTT:
 					self.mainWindow.update(myOrders)
 				else:
 					messagebox.showerror("Error!", "Invalid file!")
-					
+
 def printOrders(orderList):
 	if (len(orderList) == 0):
 		messagebox.showerror("Printing...", "No orders selected! Cannot print")
