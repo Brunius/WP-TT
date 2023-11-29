@@ -3,11 +3,12 @@ from tkinter import filedialog as fd
 from tkinter import messagebox
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
-from os.path import isfile
+A4_landscape = (A4[1], A4[0])
+from os.path import isfile, join
+from os import getcwd
 import time
 import csv
 import versioninfo
-
 
 def isValidFile(filename : str):
 	if (isfile(filename)) and (filename.endswith(".csv")):
@@ -96,8 +97,7 @@ class WPTT:
 					box.delete(0, tk.END)
 
 			def fillListboxes(self, items):
-				global currentOrders
-				currentOrders = items
+				self.currentOrders = items
 				for myOrder in items:
 					self.box_display_name.insert(tk.END, myOrder.custName)
 					self.box_display_email.insert(tk.END, myOrder.custEmail)
@@ -267,6 +267,25 @@ class WPTT:
 				)
 				self.warning.bind("<Button-1>", self.click_loadFile)
 
+			def print_all(self):
+				WPTT.window.print(myOrders.orders)
+
+			def print_filter(self):
+				WPTT.window.print(self.currentOrders)
+				
+			def print_selected(self):
+				orderIndices = [index for index in self.box_display_name.curselection()]
+				whichOrders = []
+				for index in orderIndices:
+					for candidate in myOrders.orders:
+						# If we had an order number to compare, that would be better. Unfortunately, we don't.
+						if ((candidate.custName == self.box_display_name.get(index)) and 
+		  					(candidate.orderPlaced == self.box_display_date.get(index)) and
+							(candidate.productStr == self.box_display_product.get(index))):
+							whichOrders.append(candidate)
+							break
+				WPTT.window.print(whichOrders)
+
 			def setup_singleButton(self, rootFrame, descriptor, callbackFunc):
 				button = tk.Button(
 					rootFrame,
@@ -280,9 +299,9 @@ class WPTT:
 				)
 
 			def setup_printButtons(self, rootFrame):
-				btn_printall			= self.setup_singleButton(rootFrame, "Print all", printAll)
-				btn_printCurrentFilters	= self.setup_singleButton(rootFrame, "Print current filters", printFiltered)
-				btn_printSelection		= self.setup_singleButton(rootFrame, "Print selection", printCurrent)
+				btn_printall			= self.setup_singleButton(rootFrame, "Print all", self.print_all)
+				btn_printCurrentFilters	= self.setup_singleButton(rootFrame, "Print current filters", self.print_filter)
+				btn_printSelection		= self.setup_singleButton(rootFrame, "Print selection", self.print_selected)
 
 			def __init__(self, rootWindow):
 				menubar = self.setup_menubar(rootWindow)
@@ -373,10 +392,6 @@ class WPTT:
 					command=self.load
 				)
 				btn_continue.pack(side=tk.BOTTOM)
-				self.frame.mainloop()
-
-			def mainloop(self):
-				self.frame.mainloop()
 
 			def selectFile(self):
 				filetypes = (
@@ -400,117 +415,101 @@ class WPTT:
 					self.mainWindow.update(myOrders)
 				else:
 					messagebox.showerror("Error!", "Invalid file!")
-
-def printOrders(orderList):
-	if (len(orderList) == 0):
-		messagebox.showerror("Printing...", "No orders selected! Cannot print")
-		return
-	w, h = A4
-	tmp = h
-	h = w
-	w = tmp
-	margin = 36
-	marginBottom = margin+108
-	def printPicklist(printDoc):
-		currentWritePosition = 0
-		for order in orderList:
-			if (currentWritePosition <= marginBottom):
-				currentWritePosition = h-margin
-				text = printDoc.beginText(margin, currentWritePosition)
-				text.setFont("Courier", 12)
-				text.textLine("{} - Picklist for {} orders".format(
-					time.strftime("%F %R", time.localtime()),
-					len(orderList)
-				))
-				descriptionLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
-					"Pickup Date",
-					"Name",
-					"Pickup?",
-					"Phone Number",
-					"Items"
-				)
-				text.textLine(descriptionLine)
-				currentWritePosition -= 24
-			pickLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
-				order.pickupDate,
-				order.custName,
-				order.pickupOrDeliver,
-				order.custPhone,
-				order.productStr
-			)
-			text.textLine(pickLine)
-			currentWritePosition -= 12
-			if order.isDelivery:
-				for line in order.deliveryInstructions.split("Delivery Instructions: "):
-					text.textLine("    {}".format(line.replace("\n", " ")))
-					currentWritePosition -= 12
-			if (currentWritePosition <= marginBottom):
-				printDoc.drawText(text)
-				printDoc.showPage()
-		printDoc.drawText(text)
-		printDoc.showPage()
-
-	def printInvoices(printDoc):
-		#TODO
-		print()
-
-	def printToPdf():
-		pdfFilename = "WP-TT-{}.pdf".format(int(time.time()))
-		printDoc = canvas.Canvas(pdfFilename, pagesize=(w, h))
-		if pickList.get():
-			printPicklist(printDoc)
-		if invoices.get():
-			printInvoices(printDoc)
-		printDoc.save()
-
-	printDialogue = tk.Toplevel()
-	printDialogue.title("Printing orders...")
-	lbl_printDialogue = tk.Label(
-		printDialogue,
-		text="Printing {} orders".format(len(orderList)),
-	)
-	lbl_printDialogue.pack(side=tk.TOP)
-	pickList = tk.BooleanVar()
-	invoices = tk.BooleanVar()
-	frame_pickList = tk.Frame(printDialogue)
-	chk_pickList = tk.Checkbutton(frame_pickList, variable=pickList, onvalue=True, offvalue=False)
-	lbl_pickList = tk.Label(frame_pickList, text="Print Picklist?")
-	chk_pickList.pack(side=tk.LEFT)
-	lbl_pickList.pack(side=tk.RIGHT)
-	frame_pickList.pack(side=tk.TOP, fill=tk.BOTH)
-
-	#TODO: FUTURE TASK
-	"""
-	frame_invoices = tk.Frame(printDialogue)
-	chk_invoices = tk.Checkbutton(frame_invoices, variable=invoices, onvalue=True, offvalue=False)
-	lbl_invoices = tk.Label(frame_invoices, text="Print Invoices?")
-	chk_invoices.pack(side=tk.LEFT)
-	lbl_invoices.pack(side=tk.RIGHT)
-	frame_invoices.pack(side=tk.TOP, fill=tk.BOTH)
-	"""
-	btn_print = tk.Button(printDialogue, text="Print!", command=printToPdf)
-	btn_print.pack(side=tk.BOTTOM)
-
-	printDialogue.mainloop()
-
-def printAll():
-	printOrders(myOrders.orders)
-
-def printFiltered():
-	printOrders(currentOrders)
-
-def printCurrent():
-	return
-	#TODO: Fix this bad boy up
-	whichcustEmails = [box_display_custEmail.get(index) for index in box_display_custEmail.curselection()]
-	whichOrders = []
-	for custEmail in whichcustEmails:
-		for orderCandidate in myOrders.orders:
-			if orderCandidate.custEmail == custEmail:
-				whichOrders.append(orderCandidate)
-				break
-	printOrders(whichOrders)
 		
+		class print:
+			def __init__(self, ordersToPrint):
+				if len(ordersToPrint) == 0:
+					messagebox.showerror("Print Error", "No orders selected! Cannot print")
+					return
+				self.orders		= ordersToPrint
+				self.pageSize	= A4_landscape
+
+				self.margin		= 36		#36 = 1/2", roughly
+				self.marginB	= 72		#This gives lots of room for the last order to print properly
+
+				self.default_file_name	= time.strftime("Trees-%F-%H-%M.pdf", time.localtime())
+
+				# Setup GUI
+				self.frame = tk.Toplevel()
+				self.frame.title("Printing orders...")
+				lbl_printDialogue = tk.Label(
+					self.frame,
+					text="Printing {} orders".format(len(self.orders)),
+				)
+				lbl_printDialogue.pack(side=tk.TOP)
+				"""
+				pickList = tk.BooleanVar()
+				invoices = tk.BooleanVar()
+				frame_pickList = tk.Frame(self.frame)
+				chk_pickList = tk.Checkbutton(frame_pickList, variable=pickList, onvalue=True, offvalue=False)
+				lbl_pickList = tk.Label(frame_pickList, text="Print Picklist?")
+				chk_pickList.pack(side=tk.LEFT)
+				lbl_pickList.pack(side=tk.RIGHT)
+				frame_pickList.pack(side=tk.TOP, fill=tk.BOTH)
+				"""
+				#TODO: FUTURE TASK
+				"""
+				frame_invoices = tk.Frame(printDialogue)
+				chk_invoices = tk.Checkbutton(frame_invoices, variable=invoices, onvalue=True, offvalue=False)
+				lbl_invoices = tk.Label(frame_invoices, text="Print Invoices?")
+				chk_invoices.pack(side=tk.LEFT)
+				lbl_invoices.pack(side=tk.RIGHT)
+				frame_invoices.pack(side=tk.TOP, fill=tk.BOTH)
+				"""
+				btn_print = tk.Button(self.frame, text="Print!", command=self.print)
+				btn_print.pack(side=tk.BOTTOM)
+
+			def print(self):
+				filetypes = (
+					('pdf files', '*.pdf'),
+					('All files', '*.*')
+				)
+				self.saveas = fd.asksaveasfilename(
+					defaultextension="pdf",
+					initialfile=self.default_file_name,
+					filetypes=filetypes
+				)
+				if self.saveas is None:
+					return
+				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
+				w, h = self.pageSize
+				setupFlag = True
+				for order in self.orders:
+					if (setupFlag):
+						setupFlag = False
+						text = self.canvas.beginText(self.margin, h-self.margin)
+						text.setFont("Courier", 12)
+						text.textLine("{} - Picklist for {} orders".format(
+							time.strftime("%F %R", time.localtime()),
+							len(self.orders)
+						))
+						descriptionLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+							"Pickup Date",
+							"Name",
+							"Pickup?",
+							"Phone Number",
+							"Items"
+						)
+						text.textLine(descriptionLine)
+					pickLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
+						order.pickupDate,
+						order.custName,
+						order.pickupOrDeliver,
+						order.custPhone,
+						order.productStr
+					)
+					text.textLine(pickLine)
+					if order.isDelivery:
+						for line in order.deliveryInstructions.split("Delivery Instructions: "):
+							text.textLine("    {}".format(line.replace("\n", " ")))
+					if (text.getY() <= self.marginB):
+						self.canvas.drawText(text)
+						self.canvas.showPage()
+						setupFlag = True
+				self.canvas.drawText(text)
+				self.canvas.showPage()
+				self.canvas.save()
+				self.frame.destroy()		
 
 root = tk.Tk()
 root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
