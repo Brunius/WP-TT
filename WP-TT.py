@@ -474,7 +474,7 @@ class WPTT:
 				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
 				w, h = self.pageSize
 				setupFlag = True
-				for order in self.orders:
+				for index, order in enumerate(self.orders):
 					if (setupFlag):
 						setupFlag = False
 						text = self.canvas.beginText(self.margin, h-self.margin)
@@ -502,12 +502,10 @@ class WPTT:
 					if order.isDelivery:
 						for line in order.deliveryInstructions.split("Delivery Instructions: "):
 							text.textLine("    {}".format(line.replace("\n", " ")))
-					if (text.getY() <= self.marginB):
+					if (text.getY() <= self.marginB) or (index+1 == len(self.orders)):
 						self.canvas.drawText(text)
 						self.canvas.showPage()
 						setupFlag = True
-				self.canvas.drawText(text)
-				self.canvas.showPage()
 				self.canvas.save()
 				self.frame.destroy()		
 
