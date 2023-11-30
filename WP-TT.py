@@ -459,19 +459,7 @@ class WPTT:
 				btn_print = tk.Button(self.frame, text="Print!", command=self.print)
 				btn_print.pack(side=tk.BOTTOM)
 
-			def print(self):
-				filetypes = (
-					('pdf files', '*.pdf'),
-					('All files', '*.*')
-				)
-				self.saveas = fd.asksaveasfilename(
-					defaultextension="pdf",
-					initialfile=self.default_file_name,
-					filetypes=filetypes
-				)
-				if self.saveas is None:
-					return
-				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
+			def print_picklist(self):
 				w, h = self.pageSize
 				setupFlag = True
 				for index, order in enumerate(self.orders):
@@ -506,8 +494,27 @@ class WPTT:
 						self.canvas.drawText(text)
 						self.canvas.showPage()
 						setupFlag = True
+
+			def print(self):
+				filetypes = (
+					('pdf files', '*.pdf'),
+					('All files', '*.*')
+				)
+				self.saveas = fd.asksaveasfilename(
+					defaultextension="pdf",
+					initialfile=self.default_file_name,
+					filetypes=filetypes
+				)
+				if self.saveas is None:
+					messagebox.showerror("Error!", "Print dialogue cancelled - nothing was saved")
+					return
+				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
+				# If picklist is desired - print it
+				self.print_picklist()
+
+				# After all options are completed - save and close dialogue
 				self.canvas.save()
-				self.frame.destroy()		
+				self.frame.destroy()
 
 root = tk.Tk()
 root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
