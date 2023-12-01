@@ -4,10 +4,12 @@ from tkinter import messagebox
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 A4_landscape = (A4[1], A4[0])
-from os.path import isfile, join
-from os import getcwd
+from reportlab.pdfbase.pdfmetrics import stringWidth
+from os.path import isfile
 import time
 import csv
+from math import floor
+import textwrap
 import versioninfo
 
 def isValidFile(filename : str):
@@ -494,6 +496,72 @@ class WPTT:
 						self.canvas.drawText(text)
 						self.canvas.showPage()
 						setupFlag = True
+			
+			def print_tags(self):
+				def setupPage(virtPage, pageSize):
+					self.canvas.setFontSize(24)
+					pageW, pageH = pageSize
+					pageW = int(pageW)
+					pageH = int(pageH)
+					virtW, virtH = virtPage
+					virtW = int(virtW)
+					virtH = int(virtH)
+					for x in range(0, pageW, virtW):
+						self.canvas.line(x, 0, x, pageH)
+					for y in range(0, pageH, virtH):
+						self.canvas.line(0, y, pageW, y)
+				
+				def drawTag(virtPage, location_X : int, location_Y : int, orderString : str):
+					lineSpacing	= 1.2
+					fontName	= self.canvas._fontname
+					fontSize	= self.canvas._fontsize
+					lineSpacing	= fontSize*lineSpacing
+
+					# This is worst case char width - it may not be this bad
+					charWidth	= stringWidth("m", fontName, fontSize)
+					
+					lines		= orderString.splitlines()
+					#If lines are longer than would fit, split into multiple lines
+					for index, line in enumerate(lines):
+						width = stringWidth(line, fontName, fontSize)
+						if (width > virtPage[0]):
+							newLine = textwrap.wrap(line, floor(virtPage[0]/charWidth))
+							lines[index:index+len(newLine)-1] = newLine
+
+					centre_X	= (location_X + 0.5) * virtPage[0]
+					centre_Y	= (location_Y + 0.5) * virtPage[1]
+
+					draw_X		= centre_X
+					draw_Y		= (
+						centre_Y - 
+						(len(lines)/2)*lineSpacing
+					)
+					# Lines have to be reversed due to how they're interpreted in the for loop
+					lines.reverse()
+					for index, line in enumerate(lines):
+						self.canvas.drawCentredString(draw_X, draw_Y+lineSpacing*index, line)
+
+				w, h = self.pageSize
+				numTags = 8
+				# 8 = 4X, 2Y
+				num_X = 4
+				num_Y = 2
+				virtPage = (w/num_X, h/num_Y)
+				orderFormat = "{name}\n{product}\n{fulfillment}\n{date}"
+				for index, order in enumerate(self.orders):
+					orderString = orderFormat.format(
+						name=order.custName,
+						product=order.productStr,
+						fulfillment=order.pickupOrDeliver,
+						date=order.pickupDate,
+					)
+					if (index % numTags == 0):
+						setupPage(virtPage, self.pageSize)
+					index_X = (index % num_X)
+					index_Y = (floor((index % numTags)/num_X))
+					drawTag(virtPage, index_X, index_Y, orderString)
+					if (index % numTags == numTags-1):
+						self.canvas.showPage()
 
 			def print(self):
 				filetypes = (
@@ -511,6 +579,8 @@ class WPTT:
 				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
 				# If picklist is desired - print it
 				self.print_picklist()
+				# If tags are desired - print them
+				self.print_tags()
 
 				# After all options are completed - save and close dialogue
 				self.canvas.save()
