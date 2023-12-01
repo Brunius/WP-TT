@@ -22,6 +22,7 @@ def isValidFile(filename : str):
 class WPTT:
 	class order:
 		def __init__(self, orderRow: list):
+			self.orderRow		=	orderRow
 			self.orderPlaced	=	orderRow[1]
 			self.status			=	orderRow[10]
 			self.currency		=	orderRow[2]
@@ -49,18 +50,21 @@ class WPTT:
 			pickupDate			=	orderRow[8][:10]
 			#convert US date to AU date
 			self.pickupDate		=	pickupDate[3:6] + pickupDate[0:3] + pickupDate[6:10]
-			product				=	orderRow[24]
-			productQty			=	orderRow[23]
-			productPrice		=	orderRow[29]
-			productTotal		=	orderRow[30]
+			self.product		=	orderRow[24]
+			self.productQty		=	int(orderRow[23])
+			self.productPrice	=	orderRow[29]
+			self.productTotal	=	orderRow[30]
 
-			self.productList.append((product, productQty, productPrice, productTotal))
+			self.productList.append((self.product, self.productQty, self.productPrice, self.productTotal))
 
 			self.productStr = ", ".join(["{}x {}".format(x[1], x[0]) for x in self.productList])
 		
 		def __str__(self):
 			nameStr = "{} : {} order for {}".format(self.pickupDate, self.pickupOrDeliver, self.custName)
 			return "{} - {}".format(nameStr, self.productStr)
+		
+		def clone(self):
+			return WPTT.order(self.orderRow)
 
 	class importObj:
 		pass
@@ -529,7 +533,7 @@ class WPTT:
 					#If lines are longer than would fit, split into multiple lines
 					for index, line in enumerate(lines):
 						width = stringWidth(line, fontName, fontSize)
-						if (width > virtPage[0]):
+						if (width > (virtPage[0]-self.margin*2)):
 							newLine = textwrap.wrap(line, floor(virtPage[0]/charWidth))
 							lines[index:index+len(newLine)-1] = newLine
 
@@ -553,7 +557,24 @@ class WPTT:
 				num_Y = 2
 				virtPage = (w/num_X, h/num_Y)
 				orderFormat = "{name}\n{product}\n{fulfillment}\n{date}"
-				for index, order in enumerate(self.orders):
+
+				tagOrders = self.orders
+				for index, order in enumerate(tagOrders):
+					if (order.productQty > 1):
+						newOrderList = []
+						for x in range(order.productQty):
+							newOrder = order.clone()
+							newOrder.productQty = 1
+							newOrder.productStr = "{}x {}\n({} of {})".format(
+								newOrder.productQty,
+								newOrder.product,
+								x+1,
+								order.productQty
+							)
+							newOrderList.append(newOrder)
+						tagOrders[index:index+len(newOrderList)-1] = newOrderList
+
+				for index, order in enumerate(tagOrders):
 					orderString = orderFormat.format(
 						name=order.custName,
 						product=order.productStr,
