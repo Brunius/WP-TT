@@ -10,6 +10,7 @@ import time
 import csv
 from math import floor
 import textwrap
+from webbrowser import open_new
 import versioninfo
 
 def isValidFile(filename : str):
@@ -433,7 +434,7 @@ class WPTT:
 
 				# Setup GUI
 				self.frame = tk.Toplevel()
-				self.frame.title("Printing orders...")
+				self.frame.title("WPTT - Printing {} orders".format(len(self.orders)))
 				lbl_printDialogue = tk.Label(
 					self.frame,
 					text="Printing {} orders".format(len(self.orders)),
@@ -585,6 +586,7 @@ class WPTT:
 				# After all options are completed - save and close dialogue
 				self.canvas.save()
 				self.frame.destroy()
+				open_new(self.saveas)
 
 root = tk.Tk()
 root.title("Wonga Park Trees Tool - version {}".format(versioninfo.VERSION_STRING))
