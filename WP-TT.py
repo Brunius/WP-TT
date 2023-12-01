@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog as fd
 from tkinter import messagebox
+from tkinter import ttk
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 A4_landscape = (A4[1], A4[0])
@@ -424,34 +425,94 @@ class WPTT:
 					messagebox.showerror("Error!", "Invalid file!")
 		
 		class print:
+			class checkbox_row:
+				def setup_checkbox(self, rootFrame, descriptor):
+					frame_checkbox = tk.Frame(rootFrame)
+					frame_checkbox.pack(side=tk.LEFT)
+					checkbox	= tk.Checkbutton(frame_checkbox)
+					checkbox.pack(side=tk.LEFT)
+					label		= tk.Label(frame_checkbox, text=descriptor)
+					label.pack(side=tk.LEFT)
+					return checkbox
+				
+				def trigNone(self):
+					if (self.noneVar.get()):
+						self.check_combined.deselect()
+						self.check_delivery.deselect()
+						self.check_pickup.deselect()
+
+						self.check_combined.config(state=tk.DISABLED)
+						self.check_delivery.config(state=tk.DISABLED)
+						self.check_pickup.config(state=tk.DISABLED)
+					else:
+						self.check_combined.select()
+						self.check_delivery.deselect()
+						self.check_pickup.deselect()
+
+						self.check_combined.config(state=tk.NORMAL)
+						self.check_delivery.config(state=tk.NORMAL)
+						self.check_pickup.config(state=tk.NORMAL)
+
+
+				def __init__(self, rootFrame):
+					self.noneVar		= tk.BooleanVar()
+					self.combinedVar	= tk.BooleanVar(value=True)
+					self.deliveryVar	= tk.BooleanVar()
+					self.pickupVar		= tk.BooleanVar()
+
+					self.check_none		= self.setup_checkbox(rootFrame, "None")
+					self.check_combined	= self.setup_checkbox(rootFrame, "Combined")
+					self.check_delivery	= self.setup_checkbox(rootFrame, "Delivery")
+					self.check_pickup	= self.setup_checkbox(rootFrame, "Pickup")
+					
+					self.check_none.config(variable=self.noneVar, command=self.trigNone)
+					self.check_combined.config(variable=self.combinedVar)
+					self.check_delivery.config(variable=self.deliveryVar)
+					self.check_pickup.config(variable=self.pickupVar)
+
+				def get(self):
+					filterItems = []
+					if self.combinedVar.get():
+						filterItems.append("All")
+					if self.deliveryVar.get():
+						filterItems.append("Delivery")
+					if self.pickupVar.get():
+						filterItems.append("Pickup")
+					return filterItems
+				
+				def set(self, list):
+					if list[0]:
+						self.check_none.select()
+					else:
+						self.check_none.deselect()
+					if list[1]:
+						self.check_combined.select()
+					else:
+						self.check_combined.deselect()
+					if list[2]:
+						self.check_delivery.select()
+					else:
+						self.check_delivery.deselect()
+					if list[3]:
+						self.check_pickup.select()
+					else:
+						self.check_pickup.deselect()
+
 			def setup_window(self):
 				# Setup GUI
 				self.frame = tk.Toplevel()
 				self.frame.title("WPTT - Printing {} orders".format(len(self.orders)))
-				lbl_printDialogue = tk.Label(
-					self.frame,
-					text="Printing {} orders".format(len(self.orders)),
-				)
-				lbl_printDialogue.pack(side=tk.TOP)
-				"""
-				pickList = tk.BooleanVar()
-				invoices = tk.BooleanVar()
-				frame_pickList = tk.Frame(self.frame)
-				chk_pickList = tk.Checkbutton(frame_pickList, variable=pickList, onvalue=True, offvalue=False)
-				lbl_pickList = tk.Label(frame_pickList, text="Print Picklist?")
-				chk_pickList.pack(side=tk.LEFT)
-				lbl_pickList.pack(side=tk.RIGHT)
-				frame_pickList.pack(side=tk.TOP, fill=tk.BOTH)
-				"""
-				#TODO: FUTURE TASK
-				"""
-				frame_invoices = tk.Frame(printDialogue)
-				chk_invoices = tk.Checkbutton(frame_invoices, variable=invoices, onvalue=True, offvalue=False)
-				lbl_invoices = tk.Label(frame_invoices, text="Print Invoices?")
-				chk_invoices.pack(side=tk.LEFT)
-				lbl_invoices.pack(side=tk.RIGHT)
-				frame_invoices.pack(side=tk.TOP, fill=tk.BOTH)
-				"""
+				frame_picklist = tk.Frame(self.frame)
+				frame_picklist.pack(side=tk.TOP)
+				tk.Label(frame_picklist, text="Print Picklists:").pack(side=tk.TOP, anchor=tk.W)
+				self.checkbox_picklist = self.checkbox_row(frame_picklist)
+				self.checkbox_picklist.set([False, True, True, True])
+				ttk.Separator(self.frame, orient=tk.HORIZONTAL).pack(fill=tk.X)
+				frame_tags = tk.Frame(self.frame)
+				frame_tags.pack(side=tk.TOP)
+				tk.Label(frame_tags, text="Print Tags:").pack(side=tk.TOP, anchor=tk.W)
+				self.checkbox_tags = self.checkbox_row(frame_tags)
+				ttk.Separator(self.frame, orient=tk.HORIZONTAL).pack(fill=tk.X)
 				btn_print = tk.Button(self.frame, text="Print!", command=self.print)
 				btn_print.pack(side=tk.BOTTOM)
 
@@ -470,17 +531,18 @@ class WPTT:
 
 				self.setup_window()
 
-			def print_picklist(self):
+			def print_picklist(self, orderList, extradescriptor=""):
 				w, h = self.pageSize
 				setupFlag = True
-				for index, order in enumerate(self.orders):
+				for index, order in enumerate(orderList):
 					if (setupFlag):
 						setupFlag = False
 						text = self.canvas.beginText(self.margin, h-self.margin)
 						text.setFont("Courier", 12)
-						text.textLine("{} - Picklist for {} orders".format(
+						text.textLine("{} - Picklist for {} orders {}".format(
 							time.strftime("%F %R", time.localtime()),
-							len(self.orders)
+							len(orderList),
+							extradescriptor
 						))
 						descriptionLine = "{:11s} | {:20s} | {:10s} | {:20s} | {:25s}".format(
 							"Pickup Date",
@@ -501,12 +563,12 @@ class WPTT:
 					for line in order.deliveryInstructions.split("Delivery Instructions: "):
 						if (len(line) > 0) and not (line.isspace()):
 							text.textLine("    {}".format(line.replace("\n", " ")))
-					if (text.getY() <= self.marginB) or (index+1 == len(self.orders)):
+					if (text.getY() <= self.marginB) or (index+1 == len(orderList)):
 						self.canvas.drawText(text)
 						self.canvas.showPage()
 						setupFlag = True
 			
-			def print_tags(self):
+			def print_tags(self, orderList):
 				def setupPage(virtPage, pageSize):
 					self.canvas.setFontSize(24)
 					pageW, pageH = pageSize
@@ -558,7 +620,7 @@ class WPTT:
 				virtPage = (w/num_X, h/num_Y)
 				orderFormat = "{name}\n{product}\n{fulfillment}\n{date}"
 
-				tagOrders = self.orders
+				tagOrders = orderList
 				for index, order in enumerate(tagOrders):
 					if (order.productQty > 1):
 						newOrderList = []
@@ -603,14 +665,33 @@ class WPTT:
 					messagebox.showerror("Error!", "Print dialogue cancelled - nothing was saved")
 					return
 				self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
-				# If picklist is desired - print it
-				self.print_picklist()
-				# If tags are desired - print them
-				self.print_tags()
+
+				for filterItem in self.checkbox_picklist.get():
+					if filterItem == "All":
+						self.print_picklist(self.orders, "- All")
+					else:
+						orderList = []
+						for order in self.orders:
+							if filterItem == order.pickupOrDeliver:
+								orderList.append(order)
+						if (len(orderList) > 0):
+							self.print_picklist(orderList, "- {}".format(filterItem))
+				for filterItem in self.checkbox_tags.get():
+					if filterItem == "All":
+						self.print_tags(self.orders)
+					else:
+						orderList = []
+						for order in self.orders:
+							if filterItem == order.pickupOrDeliver:
+								orderList.append(order)
+						if (len(orderList) > 0):
+							self.print_tags(orderList)
 
 				# After all options are completed - save and close dialogue
 				self.canvas.save()
 				self.frame.destroy()
+
+				# Open newly saved pdf
 				open_new(self.saveas)
 
 root = tk.Tk()
