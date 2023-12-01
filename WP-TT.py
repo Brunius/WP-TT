@@ -420,18 +420,7 @@ class WPTT:
 					messagebox.showerror("Error!", "Invalid file!")
 		
 		class print:
-			def __init__(self, ordersToPrint):
-				if len(ordersToPrint) == 0:
-					messagebox.showerror("Print Error", "No orders selected! Cannot print")
-					return
-				self.orders		= ordersToPrint
-				self.pageSize	= A4_landscape
-
-				self.margin		= 36		#36 = 1/2", roughly
-				self.marginB	= 72		#This gives lots of room for the last order to print properly
-
-				self.default_file_name	= time.strftime("Trees-%F-%H-%M.pdf", time.localtime())
-
+			def setup_window(self):
 				# Setup GUI
 				self.frame = tk.Toplevel()
 				self.frame.title("WPTT - Printing {} orders".format(len(self.orders)))
@@ -461,6 +450,21 @@ class WPTT:
 				"""
 				btn_print = tk.Button(self.frame, text="Print!", command=self.print)
 				btn_print.pack(side=tk.BOTTOM)
+
+			def __init__(self, ordersToPrint):
+				if len(ordersToPrint) == 0:
+					messagebox.showerror("Print Error", "No orders selected! Cannot print")
+					return
+				
+				self.orders		= ordersToPrint
+				self.pageSize	= A4_landscape
+
+				self.margin		= 36		#36 = 1/2", roughly
+				self.marginB	= 72		#This gives lots of room for the last order to print properly
+
+				self.default_file_name	= time.strftime("Trees-%F-%H-%M.pdf", time.localtime())
+
+				self.setup_window()
 
 			def print_picklist(self):
 				w, h = self.pageSize
