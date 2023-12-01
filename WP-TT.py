@@ -487,8 +487,8 @@ class WPTT:
 						order.productStr
 					)
 					text.textLine(pickLine)
-					if order.isDelivery:
-						for line in order.deliveryInstructions.split("Delivery Instructions: "):
+					for line in order.deliveryInstructions.split("Delivery Instructions: "):
+						if (len(line) > 0) and not (line.isspace()):
 							text.textLine("    {}".format(line.replace("\n", " ")))
 					if (text.getY() <= self.marginB) or (index+1 == len(self.orders)):
 						self.canvas.drawText(text)
