@@ -117,6 +117,7 @@ class printWindow:
 				self.check_combined.config(state=tk.NORMAL)
 				self.check_delivery.config(state=tk.NORMAL)
 				self.check_pickup.config(state=tk.NORMAL)
+
 		def __init__(self, rootFrame):
 			self.noneVar		= tk.BooleanVar()
 			self.combinedVar	= tk.BooleanVar(value=True)
@@ -131,6 +132,7 @@ class printWindow:
 			self.check_combined.config(variable=self.combinedVar)
 			self.check_delivery.config(variable=self.deliveryVar)
 			self.check_pickup.config(variable=self.pickupVar)
+
 		def get(self):
 			filterItems = []
 			if self.combinedVar.get():
@@ -163,17 +165,29 @@ class printWindow:
 		# Setup GUI
 		self.frame = tk.Toplevel()
 		self.frame.title("WPTT - Printing {} orders".format(len(self.orders)))
+
+		frame_top = tk.Frame(self.frame)
+		frame_top.pack(side=tk.TOP)
+		tk.Label(frame_top, text="Print Summary:").pack(side=tk.LEFT, anchor=tk.W)
+		self.summaryVar = tk.BooleanVar(value = True)
+		summaryCheckbox = tk.Checkbutton(frame_top)
+		summaryCheckbox.pack(side=tk.LEFT)
+		summaryCheckbox.config(variable = self.summaryVar)
+		ttk.Separator(self.frame, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
 		frame_picklist = tk.Frame(self.frame)
 		frame_picklist.pack(side=tk.TOP)
 		tk.Label(frame_picklist, text="Print Picklists:").pack(side=tk.TOP, anchor=tk.W)
 		self.checkbox_picklist = self.checkbox_row(frame_picklist)
 		self.checkbox_picklist.set([False, True, True, True])
 		ttk.Separator(self.frame, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
 		frame_tags = tk.Frame(self.frame)
 		frame_tags.pack(side=tk.TOP)
 		tk.Label(frame_tags, text="Print Tags:").pack(side=tk.TOP, anchor=tk.W)
 		self.checkbox_tags = self.checkbox_row(frame_tags)
 		ttk.Separator(self.frame, orient=tk.HORIZONTAL).pack(fill=tk.X)
+
 		btn_print = tk.Button(self.frame, text="Print!", command=self.print)
 		btn_print.pack(side=tk.BOTTOM)
 
@@ -188,8 +202,34 @@ class printWindow:
 		self.marginB	= 72		#This gives lots of room for the last order to print properly
 		self.default_file_name	= time.strftime("Trees-%F-%H-%M.pdf", time.localtime())
 		self.setup_window()
-		
-	def print_picklist(self, orderList, extradescriptor=""):
+	
+	def print_picklist(self, orderList, extradescriptor):
+		# Group orders by tree size
+		orderList_5ft = [order for order in orderList if "5'" in order.product]
+		orderList_6ft = [order for order in orderList if "6'" in order.product]
+		orderList_7ft = [order for order in orderList if "7'" in order.product]
+		self.print_picklist_details(orderList_5ft, extradescriptor)
+		self.print_picklist_details(orderList_6ft, extradescriptor)
+		self.print_picklist_details(orderList_7ft, extradescriptor)
+
+	def print_summary(self, orderList):
+		w, h = self.pageSize
+		listOfPickupDates = sorted(set([order.pickupDate for order in orderList]))
+		text = self.canvas.beginText(self.margin, h-self.margin)
+		text.textLine("Summary: ")
+		for date in listOfPickupDates:
+			ordersForDay = [order for order in orderList if order.pickupDate == date]
+			num_5ft = sum([order.productQty for order in ordersForDay if "5'" in order.productStr])
+			num_6ft = sum([order.productQty for order in ordersForDay if "6'" in order.productStr])
+			num_7ft = sum([order.productQty for order in ordersForDay if "7'" in order.productStr])
+			text.textLine(f"    {date} -    {num_5ft}x 5ft    {num_6ft}x 6ft    {num_7ft}x 7ft")
+
+		text.textLine(    f"Total:        {num_5ft}x 5ft    {num_6ft}x 6ft    {num_7ft}x 7ft")
+		self.canvas.drawText(text)
+		self.canvas.showPage()
+
+
+	def print_picklist_details(self, orderList, extradescriptor=""):
 		w, h = self.pageSize
 		setupFlag = True
 		for index, order in enumerate(orderList):
@@ -320,6 +360,9 @@ class printWindow:
 			messagebox.showerror("Error!", "Print dialogue cancelled - nothing was saved")
 			return
 		self.canvas		= canvas.Canvas(self.saveas, pagesize=self.pageSize)
+
+		if (self.summaryVar.get()):
+			self.print_summary(self.orders)
 
 		for filterItem in self.checkbox_picklist.get():
 			if filterItem == "All":
