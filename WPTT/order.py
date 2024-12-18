@@ -18,7 +18,7 @@ class order:
 
 		self.deliveryInstructions = orderRow[13]
 		
-		self.isDelivery		=	"DELIVER" in self.deliveryInstructions
+		self.isDelivery		=	(("DELIVER" in self.deliveryInstructions) or ("Delivery" in orderRow[9]))
 		self.isPickup		=	not self.isDelivery
 		self.pickupOrDeliver=	("Delivery" if self.isDelivery else "Pickup")
 		
