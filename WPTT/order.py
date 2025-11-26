@@ -1,35 +1,42 @@
 class order:
 	def __init__(self, orderRow: list):
 		self.orderRow		=	orderRow
-		self.orderPlaced	=	orderRow[1]
-		self.status			=	orderRow[10]
-		self.currency		=	orderRow[2]
-		self.subtotal		=	float(orderRow[3])
-		self.shipping		=	float(orderRow[5])
-		self.total			=	float(orderRow[6])
-		self.refunded			=	orderRow[7]
+		self.orderPlaced	=	orderRow[2]
+		self.status			=	orderRow[11]
+		self.currency		=	orderRow[3]
+		self.subtotal		=	float(orderRow[4])
+		# Shipping can be 0 or blank. blank is interpreted as an empty string, which float(x) doesn't like
+		self.shipping		=	orderRow[5]
+		if (self.shipping != ""):
+			self.shipping		=	float(self.shipping)
+		self.total			=	float(orderRow[7])
+		# refunded can be 0 or blank. blank is interpreted as an empty string, which float(x) doesn't like
+		self.refunded			=	orderRow[8]
 		if self.refunded != "":
 			self.refunded	=	float(self.refunded)
 
-		self.custName		=	orderRow[14]
-		self.custEmail		=	orderRow[15]
-		self.custAddress	=	"{}\n{}\n{} {} {}".format(orderRow[17], orderRow[18], orderRow[20], orderRow[21], orderRow[19])
-		self.custPhone		=	orderRow[16]
+		self.custName		=	orderRow[15]
+		self.custEmail		=	orderRow[16]
+		self.custAddress	=	"{}\n{}\n{} {} {}".format(
+			orderRow[18],
+			orderRow[19],
+			orderRow[21],
+			orderRow[22],
+			orderRow[20])
+		self.custPhone		=	orderRow[17]
 
-		self.deliveryInstructions = orderRow[13]
+		self.deliveryInstructions = orderRow[14]
 		
-		self.isDelivery		=	(("DELIVER" in self.deliveryInstructions) or ("Delivery" in orderRow[9]))
+		self.isDelivery		=	(("DELIVER" in self.deliveryInstructions) or ("Delivery" in orderRow[10]))
 		self.isPickup		=	not self.isDelivery
 		self.pickupOrDeliver=	("Delivery" if self.isDelivery else "Pickup")
 		
 
 		self.productList	= []
 
-		pickupDate			=	orderRow[8][:10]
-		#convert US date to AU date
-		self.pickupDate		=	pickupDate[3:6] + pickupDate[0:3] + pickupDate[6:10]
-		self.product		=	orderRow[24]
-		self.productQty		=	int(orderRow[23])
+		self.pickupDate			=	orderRow[9][:10]
+		self.product		=	orderRow[25]
+		self.productQty		=	int(orderRow[24])
 		self.productPrice	=	orderRow[29]
 		self.productTotal	=	orderRow[30]
 

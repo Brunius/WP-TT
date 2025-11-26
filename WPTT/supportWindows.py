@@ -214,9 +214,13 @@ class printWindow:
 
 	def print_summary(self, orderList):
 		w, h = self.pageSize
+
+		# Get list of dates for orders
 		listOfPickupDates = sorted(set([order.pickupDate for order in orderList]))
 		text = self.canvas.beginText(self.margin, h-self.margin)
 		text.textLine("Summary: ")
+
+		# For each date in the list, filter to the orders on that day, and find how many of each size have been ordered
 		for date in listOfPickupDates:
 			ordersForDay = [order for order in orderList if order.pickupDate == date]
 			num_5ft = sum([order.productQty for order in ordersForDay if "5'" in order.productStr])
